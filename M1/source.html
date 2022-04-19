@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css"/>
+        <title>TinyMorse</title>
+    </head>
+    <body>
+        <div id="container">
+            <div id="toptitle">TinyMorse</div>
+            <div id="output-area" ><span id="output-text"></span><span class="blinking-cursor">_</span></div><br />
+            <div id="input-preview-area">
+                <textarea id="input-area" readonly></textarea>
+                <textarea id="preview-letter" readonly></textarea><br />
+            </div>
+            <div id="keyboard">
+                <button type="button" id="dot">&#183;</button>
+                <button type="button" id="dash">&#8722;</button><br />
+                <button type="button" id="help">?</button><br />
+                <button type="button" id="enter">&#9251;</button>
+                <button type="button" id="delete">&#9003;</button>
+            </div>
+            <div id="tooltip">Press the ? button for a morse code manual and app details!</div>
+            
+        </div>
+        <div id="help-screen" style="display:none;">
+            <div id="help-text">
+                <ul>
+                    <li>
+                        Press the "&#183;" or "&#8722;" buttons to input any combination of dots or dashes. You can see a preview of what letter that combintation corresponds to on the right.
+                    </li>
+                    <li>
+                        Press the &#10148; button to submit the current letter that your morse code corresponds to in the output text box. If there is no current morse code input, then this button changes to &#9251; and instead adds a space to the output text box.
+                    </li>
+                    <li>
+                        If you mess up while inputting your morse code, you can press the &#9003; button to delete one character from the morse code input. If you submitted a wrong letter into the output text box, you can press this button while there is no current morse code input to delete one character from the output text box.
+                    </li>
+                </ul>
+                <p style="text-align: center; margin: 0; padding: 0;">Press the ? button again to view the morse code manual.</p>
+            </div>
+            <div id="morse-manual" style="display:none;">
+                <table border="0" id="morse-table">
+                    <tbody>
+                        <tr><td>a</td><td class="morse-text">&#183; &#8722;</td><td>n</td><td class="morse-text">&#8722; &#183;</td></tr>
+                        <tr><td>b</td><td class="morse-text">&#8722; &#183; &#183; &#183;</td><td>o</td><td class="morse-text">&#8722; &#8722; &#8722;</td></tr>
+                        <tr><td>c</td><td class="morse-text">&#8722; &#183; &#8722; &#183;</td><td>p</td><td class="morse-text">&#183; &#8722; &#8722; &#183;</td></tr>
+                        <tr><td>d</td><td class="morse-text">&#8722; &#183; &#183;</td><td>q</td><td class="morse-text">&#8722; &#8722; &#183; &#8722;</td></tr>
+                        <tr><td>e</td><td class="morse-text">&#183;</td><td>r</td><td class="morse-text">&#183; &#8722; &#183;</td></tr>
+                        <tr><td>f</td><td class="morse-text">&#183; &#183; &#8722; &#183;</td><td>s</td><td class="morse-text">&#183; &#183; &#183;</td></tr>
+                        <tr><td>g</td><td class="morse-text">&#8722; &#8722; &#183;</td><td>t</td><td class="morse-text">&#8722;</td></tr>
+                        <tr><td>h</td><td class="morse-text">&#183; &#183; &#183; &#183;</td><td>u</td><td class="morse-text">&#183; &#183; &#8722;</td></tr>
+                        <tr><td>i</td><td class="morse-text">&#183; &#183;</td><td>v</td><td class="morse-text">&#183; &#183; &#183; &#8722;</td></tr>
+                        <tr><td>j</td><td class="morse-text">&#183; &#8722; &#8722; &#8722;</td><td>w</td><td class="morse-text">&#183; &#8722; &#8722;</td></tr>
+                        <tr><td>k</td><td class="morse-text">&#8722; &#183; &#8722;</td><td>x</td><td class="morse-text">&#8722; &#183; &#183; &#8722;</td></tr>
+                        <tr><td>l</td><td class="morse-text">&#183; &#8722; &#183; &#183;</td><td>y</td><td class="morse-text">&#8722; &#183; &#8722; &#8722;</td></tr>
+                        <tr><td>m</td><td class="morse-text">&#8722; &#8722;</td><td>z</td><td class="morse-text">&#8722; &#8722; &#183; &#183;</td></tr>
+                    </tbody>
+                </table>
+                <p style="text-align:center; margin:0; padding:0;">Press the ? button again to close the help screen.</p>
+            </div>
+        </div>
+        
+
+
+        <div id="hiddenspace" style="display:none;">&#9251;</div>
+        <div id="hiddenenter" style="display:none;">&#10148;</div>
+        <script type="text/javascript" src="main.js"></script>
+    </body>
+</html>
