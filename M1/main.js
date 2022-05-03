@@ -1,17 +1,6 @@
 // JavaScript source code
 var helpOpen = 0;
 
-function init() {
-	var buttons = ["dot", "dash", "help", "enter", "delete"];
-	for (var x in buttons) {
-		button = document.getElementById(buttons[x]);
-		button.addEventListener("click", buttonClicked);
-	}
-	document.getElementById("input-area").value = "";
-	document.getElementById("output-text").textContent = "";
-	document.getElementById("preview-letter").value = "";
-}
-
 function convertMorseToLetter(morse) {
 	var dict = {};
 	dict["\u00B7\u2212"] = "a";
@@ -80,7 +69,19 @@ function buttonClicked(evt) {
 			console.log("del pressed");
 			deletePressed();
 			break;
+		case "noDraw":
+			backPressed();
+			break;
 		default:
+	}
+}
+
+function dotPressed() {
+	var inputField = document.getElementById("input-area");
+	console.log("dot pressed");
+	if (inputField.value.length < 4) {
+		inputField.value = inputField.value + "\u00B7";
+		updatePreview();
 	}
 }
 
@@ -162,7 +163,13 @@ function deletePressed() {
 			//do nothing if output is already empty
 		}
 		else {
-			outputField.textContent = outputField.textContent.substring(0, outputField.textContent.length - 1);
+			strarray = [...outputField.textContent];
+			lastChar = strarray.pop();
+			if (lastChar == "\uFE0F") {
+				strarray.pop();
+            }
+			outputField.textContent = strarray.join("");
+			//outputField.textContent = outputField.textContent.substring(0, outputField.textContent.length - 1);
 		}
 	}
 	else {
@@ -171,7 +178,33 @@ function deletePressed() {
 	}
 }
 
-window.onload = function () {
-	helpOpen = 0;
-	init();
-};
+function backPressed() {
+	document.getElementById("myCanvas").style.display = "none";
+	document.getElementById("noDraw").style.display = "none";
+
+	document.getElementById("dot").style.display = "block";
+	document.getElementById("dash").style.display = "block";
+	document.getElementById("help").style.display = "block";
+	document.getElementById("enter").style.display = "block";
+	document.getElementById("delete").style.display = "block";
+}
+
+function changeLayout() {
+	document.getElementById("myCanvas").style.display = "block";
+	document.getElementById("noDraw").style.display = "block";
+
+	document.getElementById("dot").style.display = "none";
+	document.getElementById("dash").style.display = "none";
+	document.getElementById("help").style.display = "none";
+	document.getElementById("enter").style.display = "none";
+	document.getElementById("delete").style.display = "none";
+
+	var canvas = document.getElementById('myCanvas');
+	_g = canvas.getContext('2d');
+	_g.fillStyle = "rgb(0,0,225)";
+	_g.strokeStyle = "rgb(0,0,225)";
+	_g.lineWidth = 3;
+	_rc = getCanvasRect(canvas); // canvas rect on page
+	_g.fillStyle = "rgb(0,0,255)";
+	_isDown = false;
+}
