@@ -1,0 +1,300 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
+    <link rel="stylesheet" href="style.css" />
+    <title>TinyMorse</title>
+    <script type="text/javascript" src="./jquery-1.7.2.min.js"></script>
+    <!-- this example uses TFJS 3.7.0 - older versions back to 2.1.0 are supported -->
+    <script src="https://unpkg.com/@tensorflow/tfjs-core@3.7.0/dist/tf-core.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-converter@3.7.0/dist/tf-converter.js"></script>
+
+    <!-- use the WebGL backend (recommended) - you can alternatively use the WASM backend -->
+    <script src="https://unpkg.com/@tensorflow/tfjs-backend-webgl@3.7.0/dist/tf-backend-webgl.js"></script>
+
+    <script src="https://unpkg.com/@tensorflow-models/handpose@0.0.7/dist/handpose.js"></script>
+
+    <script src="./fingerpose/dist/fingerpose.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var _isDown, _points, _r, _g, _rc;
+        function onLoadEvent() {
+            _points = new Array();
+            _r = new DollarRecognizer();
+
+            var canvas = document.getElementById('myCanvas');
+            _g = canvas.getContext('2d');
+            _g.fillStyle = "rgb(0,0,225)";
+            _g.strokeStyle = "rgb(0,0,225)";
+            _g.lineWidth = 3;
+            _rc = getCanvasRect(canvas); // canvas rect on page
+            _g.fillStyle = "rgb(0,0,255)";
+            _isDown = false;
+
+            var buttons = ["draw", "help", "enter", "delete", "noDraw", "useCamera"];
+            for (var x in buttons) {
+                button = document.getElementById(buttons[x]);
+                button.addEventListener("click", buttonClicked);
+            }
+            document.getElementById("input-area").value = "";
+            document.getElementById("output-text").textContent = "";
+            document.getElementById("preview-letter").value = "";
+            dotButton = document.getElementById("dot");
+
+            dotButton.addEventListener("mousedown", pressingDown, false);
+            dotButton.addEventListener("mouseup", notPressingDown, false);
+
+            navigator.mediaDevices
+                .getUserMedia({ video: true, audio: false })
+                .then(handleSuccess)
+                .catch(handleError);
+
+            document.getElementById("videoElement").addEventListener("loadeddata", event => {
+                console.log("Camera is ready");
+                gestureRecognizer();
+            });
+
+
+            console.log("loaded");
+        }
+
+
+        const gestureStrings = {
+            'thumbs_up': '👍',
+            'victory': '✌',
+            'high_five': '✋',
+            'thumbs_down': '👎',
+            'ok_sign': '👌'
+        };
+
+
+
+        let timerID;
+        let counter = 0;
+
+        function pressingDown(e) {
+            // Start the timer
+            requestAnimationFrame(timer);
+
+            e.preventDefault();
+
+            console.log("Pressing!");
+        }
+
+        function notPressingDown(e) {
+            // Stop the timer
+            cancelAnimationFrame(timerID);
+            if (counter > 0)
+                dotPressed();
+            counter = 0;
+
+            console.log("Not pressing!");
+        }
+
+        function timer() {
+            console.log("Timer tick!");
+
+            if (counter < 25) {
+                timerID = requestAnimationFrame(timer);
+                counter++;
+
+            } else {
+                console.log("Press threshold reached!");
+                cancelAnimationFrame(timerID);
+                counter = 0;
+                dashPressed();
+            }
+        }
+
+        function getScrollX() {
+            var scrollX = $(window).scrollLeft();
+            return scrollX;
+        }
+        function getScrollY() {
+            var scrollY = $(window).scrollTop();
+            return scrollY;
+        }
+        function getCanvasRect(canvas) {
+            var w = canvas.width;
+            var h = canvas.height;
+
+            var cx = canvas.offsetLeft;
+            var cy = canvas.offsetTop;
+            while (canvas.offsetParent != null) {
+                canvas = canvas.offsetParent;
+                cx += canvas.offsetLeft;
+                cy += canvas.offsetTop;
+            }
+            return { x: cx, y: cy, width: w, height: h };
+        }
+
+        function canvasDown(x, y, button) {
+            document.onselectstart = function () { return false; } // disable drag-select
+            document.onmousedown = function () { return false; } // disable drag-select
+            if (button <= 1) {
+                _isDown = true;
+                x -= _rc.x - getScrollX();
+                y -= _rc.y - getScrollY();
+                if (_points.length > 0)
+                    _g.clearRect(0, 0, _rc.width, _rc.height);
+                _points.length = 1; // clear
+                _points[0] = new Point(x, y);
+                //drawText("Recording unistroke...");
+                _g.fillRect(x - 4, y - 3, 9, 9);
+                _g.fillStyle = "rgb(0,0,255)";
+            }
+            else if (button == 2) {
+                //drawText("Recognizing gesture...");
+            }
+        }
+        function canvasMove(x, y, button) {
+            if (_isDown) {
+                x -= _rc.x - getScrollX();
+                y -= _rc.y - getScrollY();
+                _points[_points.length] = new Point(x, y); // append
+                drawConnectedPoint(_points.length - 2, _points.length - 1);
+            }
+        }
+        function canvasUp(x, y, button) {
+            document.onselectstart = function () { return true; } // enable drag-select
+            document.onmousedown = function () { return true; } // enable drag-select
+            if (_isDown || button == 2) {
+                _isDown = false;
+                if (_points.length >= 10) {
+                    var result = _r.Recognize(_points, true);
+                    console.log("Result: " + result.Name + " (" + round(result.Score, 2) + ") in " + result.Time + " ms.");
+                    switch (result.Name) {
+                        case "heart":
+                            document.getElementById("output-text").textContent = document.getElementById("output-text").textContent + "\u2764\uFE0F";
+                            break;
+                        case "smile":
+                            document.getElementById("output-text").textContent = document.getElementById("output-text").textContent + "\uD83D\uDE03";
+                            break;
+                        case "sad":
+                            document.getElementById("output-text").textContent = document.getElementById("output-text").textContent + "\u2639\uFE0F";
+                            break;
+                        case "ok":
+                            document.getElementById("output-text").textContent = document.getElementById("output-text").textContent + "\uD83D\uDE2E";
+                            break;
+                        case "x":
+                            document.getElementById("output-text").textContent = document.getElementById("output-text").textContent + "\u274C";
+                            break;
+                        default:
+
+                    }
+
+                }
+                else // fewer than 10 points were inputted
+                {
+                    console.log("Too few points made. Please try again.");
+                }
+            }
+        }
+        function drawText(str) {
+            _g.fillStyle = "rgb(255,255,136)";
+            _g.fillRect(0, 0, _rc.width, 20);
+            _g.fillStyle = "rgb(0,0,255)";
+            _g.fillText(str, 1, 14);
+        }
+        function drawConnectedPoint(from, to) {
+            _g.beginPath();
+            _g.moveTo(_points[from].X, _points[from].Y);
+            _g.lineTo(_points[to].X, _points[to].Y);
+            _g.closePath();
+            _g.stroke();
+        }
+        function round(n, d) // round 'n' to 'd' decimals
+        {
+            d = Math.pow(10, d);
+            return Math.round(n * d) / d;
+        }
+
+
+
+
+
+
+    </script>
+</head>
+    <body onload="onLoadEvent()">
+        <div id="container">
+            <div id="toptitle">TinyMorse</div>
+            <div id="output-area"><span id="output-text"></span><span class="blinking-cursor">_</span></div><br />
+            <div id="input-preview-area">
+                <textarea id="input-area" readonly></textarea>
+                <div id="preview-letter" ></div><br />
+            </div>
+            <div id="keyboard">
+                <button type="button" id="dot">&#183;</button>
+                <button type="button" id="draw">&#128396;</button><br />
+                <button type="button" id="help">?</button><br />
+                <button type="button" id="enter">&#9251;</button>
+                <button type="button" id="delete">&#9003;</button>
+                <canvas id="myCanvas" width="75" height="75" style="background-color:#ffffff"
+                        onmousedown="canvasDown(event.clientX, event.clientY, event.button)"
+                        onmousemove="canvasMove(event.clientX, event.clientY, event.button)"
+                        onmouseup="canvasUp(event.clientX, event.clientY, event.button)"
+                        oncontextmenu="return false;">
+                </canvas>
+                <button type="button" id="useCamera">&#128247;</button>
+                <button type="button" id="noDraw">&#129044;</button>
+                <div id="camera-emoji"></div>
+            </div>
+            
+
+            <div id="tooltip">Press the ? button for a morse code manual and app details!</div>
+            <div id="tooltip2" style="text-align:center">[NEW] Hold the dot button to enable emoji mode!</div>
+
+        </div>
+        <div id="videoContainer" style="display:none">
+            <video autoplay muted id="videoElement" class="videolayer"></video>
+        </div>
+        
+
+
+        <div id="help-screen" style="display:none;">
+            <div id="help-text">
+                <ul>
+                    <li>
+                        Press the "&#183;" or "&#8722;" buttons to input any combination of dots or dashes. You can see a preview of what letter that combintation corresponds to on the right.
+                    </li>
+                    <li>
+                        Press the &#10148; button to submit the current letter that your morse code corresponds to in the output text box. If there is no current morse code input, then this button changes to &#9251; and instead adds a space to the output text box.
+                    </li>
+                    <li>
+                        If you mess up while inputting your morse code, you can press the &#9003; button to delete one character from the morse code input. If you submitted a wrong letter into the output text box, you can press this button while there is no current morse code input to delete one character from the output text box.
+                    </li>
+                </ul>
+                <p style="text-align: center; margin: 0; padding: 0;">Press the ? button again to view the morse code manual.</p>
+            </div>
+            <div id="morse-manual" style="display:none;">
+                <table border="0" id="morse-table">
+                    <tbody>
+                        <tr><td>a</td><td class="morse-text">&#183; &#8722;</td><td>n</td><td class="morse-text">&#8722; &#183;</td></tr>
+                        <tr><td>b</td><td class="morse-text">&#8722; &#183; &#183; &#183;</td><td>o</td><td class="morse-text">&#8722; &#8722; &#8722;</td></tr>
+                        <tr><td>c</td><td class="morse-text">&#8722; &#183; &#8722; &#183;</td><td>p</td><td class="morse-text">&#183; &#8722; &#8722; &#183;</td></tr>
+                        <tr><td>d</td><td class="morse-text">&#8722; &#183; &#183;</td><td>q</td><td class="morse-text">&#8722; &#8722; &#183; &#8722;</td></tr>
+                        <tr><td>e</td><td class="morse-text">&#183;</td><td>r</td><td class="morse-text">&#183; &#8722; &#183;</td></tr>
+                        <tr><td>f</td><td class="morse-text">&#183; &#183; &#8722; &#183;</td><td>s</td><td class="morse-text">&#183; &#183; &#183;</td></tr>
+                        <tr><td>g</td><td class="morse-text">&#8722; &#8722; &#183;</td><td>t</td><td class="morse-text">&#8722;</td></tr>
+                        <tr><td>h</td><td class="morse-text">&#183; &#183; &#183; &#183;</td><td>u</td><td class="morse-text">&#183; &#183; &#8722;</td></tr>
+                        <tr><td>i</td><td class="morse-text">&#183; &#183;</td><td>v</td><td class="morse-text">&#183; &#183; &#183; &#8722;</td></tr>
+                        <tr><td>j</td><td class="morse-text">&#183; &#8722; &#8722; &#8722;</td><td>w</td><td class="morse-text">&#183; &#8722; &#8722;</td></tr>
+                        <tr><td>k</td><td class="morse-text">&#8722; &#183; &#8722;</td><td>x</td><td class="morse-text">&#8722; &#183; &#183; &#8722;</td></tr>
+                        <tr><td>l</td><td class="morse-text">&#183; &#8722; &#183; &#183;</td><td>y</td><td class="morse-text">&#8722; &#183; &#8722; &#8722;</td></tr>
+                        <tr><td>m</td><td class="morse-text">&#8722; &#8722;</td><td>z</td><td class="morse-text">&#8722; &#8722; &#183; &#183;</td></tr>
+                    </tbody>
+                </table>
+                <p style="text-align:center; margin:0; padding:0;">Press the ? button again to close the help screen.</p>
+            </div>
+        </div>
+
+
+
+        <div id="hiddenspace" style="display:none;">&#9251;</div>
+        <div id="hiddenenter" style="display:none;">&#10148;</div>
+        <script type="text/javascript" src="main.js"></script>
+        <script type="text/javascript" src="dollar.js"></script>
+        
+    </body>
+</html>
